@@ -1,53 +1,61 @@
 #!/usr/bin/env python3
 """
-Redis
+This is about asic redis file
 """
-
-import redis
+try:
+    import redis
+except ImportError:
+    redis = None
 import uuid
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 
 
 class Cache:
-    """
-    Cache
-    """
+    """This class we use for creating cache system"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
-        Redis
+        this method initialize the Cache system in the project where it were called
         """
-        self._redis = redis.Redis()
-        self._redis.flushdb()
+        if redis is None:
+            self._redis = None
+        else:
+            self._redis = redis.Redis(host = 'localhost', port=6379)
+            self._redis.flushdb()
 
-    def store(self, data: Union[str, bytes, int, float]) -> str:
-        """
-        Redis
-        """
-        random_key = str(uuid.uuid4())
-        self._redis.set(random_key, data)
-        return random_key
 
-    def get(self, key: str,
-            fn: Optional[Callable] = None) -> Union[str, bytes, int, float, None]:
+    def store(self, data: Union[str, bytes, int, float]) -> Union[str, int]:
         """
-        Redis
+        This method store key-value pair in memory Redis
         """
-        data = self._redis.get(key)
-        if data is None:
-            return None
-        if fn:
-            return fn(data)
-        return data
+        if redis is not None:
+            key = str(uuid.uuid4())
+            self._redis.set(key, data)
+            return key
+        return 1
+
+
+    def get(self, key: str, fn: Optional[Callable[[bytes], Any]] = None) -> Any:
+        """
+        This method returns the Value of the Key, and implement function if it was given
+        """
+        if redis is not None:
+            value = self._redis.get(key)
+            if value is None:
+                return None
+            if fn:
+                return fn(value)
+            return value
+        return 1
 
     def get_str(self, key: str) -> Optional[str]:
         """
-        Redis
+        This method use previous method for change the type
         """
-        return self.get(key, lambda d: d.decode("utf-8"))
+        return self.get(key=key, fn=lambda v: v.decode('utf-8'))
 
     def get_int(self, key: str) -> Optional[int]:
         """
-        Redis
+        This method use previous method for change the type
         """
-        return self.get(key, int)
+        return self.get(key=key, fn=int)
