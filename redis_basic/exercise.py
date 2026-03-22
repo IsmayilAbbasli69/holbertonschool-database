@@ -5,7 +5,7 @@ Redis
 
 import redis
 import uuid
-from typing import Union
+from typing import Union, Callable, Optional
 
 
 class Cache:
@@ -17,20 +17,37 @@ class Cache:
         """
         Redis
         """
-        # Store the redis client as a private variable
         self._redis = redis.Redis()
-        # Clear all keys in the current database
         self._redis.flushdb()
 
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Redis
         """
-        # Generate a unique random key using uuid4
         random_key = str(uuid.uuid4())
-
-        # Save the data to Redis under the generated key
         self._redis.set(random_key, data)
-
-        # Return the key so the user can retrieve the data later
         return random_key
+
+    def get(self, key: str,
+            fn: Optional[Callable] = None) -> Union[str, bytes, int, float, None]:
+        """
+        Redis
+        """
+        data = self._redis.get(key)
+        if data is None:
+            return None
+        if fn:
+            return fn(data)
+        return data
+
+    def get_str(self, key: str) -> Optional[str]:
+        """
+        Redis
+        """
+        return self.get(key, lambda d: d.decode("utf-8"))
+
+    def get_int(self, key: str) -> Optional[int]:
+        """
+        Redis
+        """
+        return self.get(key, int)
